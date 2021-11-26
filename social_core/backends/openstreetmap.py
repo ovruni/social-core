@@ -55,3 +55,45 @@ class OpenStreetMapOAuth(BaseOAuth1):
             'account_created': user.getAttribute('account_created'),
             'avatar': avatar
         }
+
+class OpenStreetMapOAuth2(BaseOAuth2):
+    """OpenStreetMap OAuth2 authentication backend"""
+    name = 'openstreetmap-oauth2'
+    AUTHORIZATION_URL = 'https://www.openstreetmap.org/oauth2/authorize'
+    ACCESS_TOKEN_URL = 'https://www.openstreetmap.org/oauth2/token'
+    EXTRA_DATA = [
+        ('id', 'id'),
+        ('avatar', 'avatar'),
+        ('account_created', 'account_created')
+    ]
+
+    def user_data(self, access_token, *args, **kwargs):
+        """Return user data provided"""
+        response = self.oauth_request(
+            access_token, 'https://api.openstreetmap.org/api/0.6/user/details'
+        )
+        try:
+            dom = minidom.parseString(response.content)
+        except ValueError:
+            return None
+        user = dom.getElementsByTagName('user')[0]
+        try:
+            avatar = dom.getElementsByTagName('img')[0].getAttribute('href')
+        except IndexError:
+            avatar = None
+        return {
+            'id': user.getAttribute('id'),
+            'username': user.getAttribute('display_name'),
+            'account_created': user.getAttribute('account_created'),
+            'avatar': avatar
+        }
+
+    def get_user_details(self, response):
+        """Return user details from OpenStreetMap account"""
+        return {
+            'username': response['username'],
+            'email': '',
+            'fullname': '',
+            'first_name': '',
+            'last_name': ''
+        }
